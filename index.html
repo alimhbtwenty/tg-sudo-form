@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>sudo form</title>
+<style>
+:root{color-scheme:light dark;--bg:#fff;--fg:#111;--mut:#666;--bd:#bbb;--ac:#2a7ae4}
+@media(prefers-color-scheme:dark){:root{--bg:#1c1c1e;--fg:#eee;--mut:#999;--bd:#555;--ac:#4a9af4}}
+body{margin:0;padding:16px;background:var(--bg);color:var(--fg);font:16px system-ui,sans-serif}
+form{max-width:420px;margin:0 auto}
+label,.l{display:block;margin:14px 0 6px;color:var(--mut)}
+input[type=password],input[type=text]{width:100%;box-sizing:border-box;padding:10px;font-size:16px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--fg);direction:ltr;text-align:left}
+.r label{display:inline-block;margin:0 0 0 18px;color:var(--fg)}
+button{margin-top:22px;width:100%;padding:12px;font-size:17px;border:0;border-radius:8px;background:var(--ac);color:#fff}
+#err{color:#d33;margin-top:12px;min-height:1.2em}
+</style>
+</head>
+<body>
+<form id="f" autocomplete="off">
+<label for="pin">PIN</label><input id="pin" type="password" inputmode="numeric" autocomplete="off">
+<div class="l">سرور</div>
+<div class="r"><label><input type="radio" name="srv" value="core-linux" checked> core-linux</label><label><input type="radio" name="srv" value="claude-linux"> claude-linux</label></div>
+<div class="l">عملیات</div>
+<div class="r"><label><input type="radio" name="act" value="on" checked> فعال</label><label><input type="radio" name="act" value="off"> غیرفعال</label></div>
+<label for="user">نام کاربری</label><input id="user" type="text" autocomplete="off" autocapitalize="off">
+<label for="pw">رمز</label><input id="pw" type="password" autocomplete="off">
+<button type="submit">ارسال</button>
+<div id="err"></div>
+</form>
+<script>
+var PUB="MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEAz8gFcB5c53nQ3Jxep7pX7n3fuR1EWtfSHFtUlBFsKgLLJhGh31/5s0qngPHpChIm0Rx1bPgMbUKbRssX1erN1BC5DaSOzTAId+zZB2L/af7pA2mAqERlreQ3mZbd6wVi3E4ep8zK50350ApLUepLti/PhX/B4ttKXxXDh3kUGHLqZph0G8ZERFnqQFKsV2iUl+lih12i12VrEQrpvjJxofqRCXVno3Zq/Aw1yZbWPnRkKuEs3GX/C3VTsGHVKbfSONheVmrOzuvt6FP7xb0aMouVQ+0yNhayPoahv1AyP6UdrIEzyY2XoBM0yKT65VxqV1gBU/Gf5K+qHMCExPaxv2v0/tkkjtTePae3VPXZE+j7HUvY9uEQ8o5CcwPSHRV6D0Pi+Q9thgunolWkxARz7f5JOeIKWee5UAovppAq19CLXJs7IwTgNk0fvbPMe8yRLhILft49yKo7vFdH/AD/KdlOWJyEvFtD//fwlx0SRGJSAdMqsiJExwDwYmjUOU/bAgMBAAE=";
+function b64(buf){var s="",u=new Uint8Array(buf);for(var i=0;i<u.length;i++)s+=String.fromCharCode(u[i]);return btoa(s)}
+function unb64(s){var b=atob(s),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u}
+function enc(obj){
+  var s=window.crypto&&window.crypto.subtle;
+  if(!s)return Promise.reject(new Error("no webcrypto"));
+  var aes,iv=crypto.getRandomValues(new Uint8Array(12));
+  return s.generateKey({name:"AES-GCM",length:256},true,["encrypt"]).then(function(k){
+    aes=k;return s.encrypt({name:"AES-GCM",iv:iv},k,new TextEncoder().encode(JSON.stringify(obj)))
+  }).then(function(c){
+    return s.exportKey("raw",aes).then(function(raw){
+      return s.importKey("spki",unb64(PUB),{name:"RSA-OAEP",hash:"SHA-256"},false,["encrypt"]).then(function(pk){
+        return s.encrypt({name:"RSA-OAEP"},pk,raw)
+      }).then(function(wk){return btoa(JSON.stringify({v:1,k:b64(wk),iv:b64(iv),c:b64(c)}))})
+    })
+  })
+}
+function post(data){
+  var ev=JSON.stringify({eventType:"web_app_data_send",eventData:{data:data}});
+  if(window.TelegramWebviewProxy&&window.TelegramWebviewProxy.postEvent)window.TelegramWebviewProxy.postEvent("web_app_data_send",JSON.stringify({data:data}));
+  else if(window.external&&window.external.notify)window.external.notify(ev);
+  else window.parent.postMessage(ev,"https://web.telegram.org");
+}
+var err=document.getElementById("err");
+if(!(window.crypto&&window.crypto.subtle))err.textContent="مرورگر WebCrypto ندارد.";
+document.getElementById("f").addEventListener("submit",function(e){
+  e.preventDefault();err.textContent="";
+  var q=new URLSearchParams(location.search),f=e.target;
+  var o={n:q.get("n")||"",pin:document.getElementById("pin").value,srv:f.srv.value,act:f.act.value,
+         user:document.getElementById("user").value,pw:document.getElementById("pw").value,t:Math.floor(Date.now()/1000)};
+  if(!o.n||!o.pin||!o.user||!o.pw){err.textContent="همهٔ فیلدها لازم است.";return}
+  enc(o).then(function(d){
+    if(d.length>3800)throw new Error("too big");
+    post(d);
+    document.getElementById("pin").value="";document.getElementById("pw").value="";document.getElementById("user").value="";
+  }).catch(function(x){err.textContent="خطا: "+x.message});
+});
+</script>
+</body>
+</html>
