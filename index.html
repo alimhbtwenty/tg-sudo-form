@@ -11,22 +11,28 @@
 body{margin:0;padding:16px;background:var(--bg);color:var(--fg);font:16px system-ui,sans-serif}
 form{max-width:420px;margin:0 auto}
 label,.l{display:block;margin:14px 0 6px;color:var(--mut)}
-input[type=password],input[type=text]{width:100%;box-sizing:border-box;padding:10px;font-size:16px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--fg);direction:ltr;text-align:left}
+input[type=password],input[type=text],textarea{width:100%;box-sizing:border-box;padding:10px;font-size:16px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--fg);direction:ltr;text-align:left}
+textarea{min-height:120px;font-family:monospace}
 .r label{display:inline-block;margin:0 0 0 18px;color:var(--fg)}
+.h{display:none}
 button{margin-top:22px;width:100%;padding:12px;font-size:17px;border:0;border-radius:8px;background:var(--ac);color:#fff}
+button:disabled{opacity:.5}
 #err{color:#d33;margin-top:12px;min-height:1.2em}
+#code{font-size:20px;font-family:monospace;direction:ltr;text-align:center}
 </style>
 </head>
 <body>
 <form id="f" autocomplete="off">
-<label for="pin">PIN</label><input id="pin" type="password" inputmode="numeric" autocomplete="off">
-<div class="l">سرور</div>
-<div class="r"><label><input type="radio" name="srv" value="core-linux" checked> core-linux</label><label><input type="radio" name="srv" value="claude-linux"> claude-linux</label></div>
-<div class="l">عملیات</div>
-<div class="r"><label><input type="radio" name="act" value="on" checked> فعال</label><label><input type="radio" name="act" value="off"> غیرفعال</label></div>
-<label for="user">نام کاربری</label><input id="user" type="text" autocomplete="off" autocapitalize="off">
+<div id="okbox" class="h"><div class="l">کد دستور</div><div id="code"></div></div>
+<div id="g_pin"><label for="pin">PIN</label><input id="pin" type="password" inputmode="numeric" autocomplete="off"></div>
+<div id="g_srv"><div class="l">سرور</div>
+<div class="r"><label><input type="radio" name="srv" value="core-linux" checked> core-linux</label><label><input type="radio" name="srv" value="claude-linux"> claude-linux</label></div></div>
+<div id="g_act"><div class="l">عملیات</div>
+<div class="r"><label><input type="radio" name="act" value="on" checked> فعال</label><label><input type="radio" name="act" value="off"> غیرفعال</label></div></div>
+<div id="g_cmd" class="h"><label for="cmd">دستور</label><textarea id="cmd" maxlength="1200" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea></div>
+<div id="g_user"><label for="user">نام کاربری</label><input id="user" type="text" autocomplete="off" autocapitalize="off"></div>
 <label for="pw">رمز</label><input id="pw" type="password" autocomplete="off">
-<button type="submit">ارسال</button>
+<button id="go" type="submit">ارسال</button>
 <div id="err"></div>
 </form>
 <script>
@@ -51,21 +57,33 @@ function post(data){
   var ev=JSON.stringify({eventType:"web_app_data_send",eventData:{data:data}});
   if(window.TelegramWebviewProxy&&window.TelegramWebviewProxy.postEvent)window.TelegramWebviewProxy.postEvent("web_app_data_send",JSON.stringify({data:data}));
   else if(window.external&&window.external.notify)window.external.notify(ev);
-  else window.parent.postMessage(ev,"https://web.telegram.org");
+  else if(window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.performAction)window.webkit.messageHandlers.performAction.postMessage(ev);
+  else{try{window.parent.postMessage(ev,"https://web.telegram.org")}catch(e){throw new Error("post failed")}}
 }
-var err=document.getElementById("err");
+function $(i){return document.getElementById(i)}
+var err=$("err"),q=new URLSearchParams(location.search),mode=q.get("m")==="cmd"?"cmd":q.get("m")==="ok"?"ok":"sudo";
+var H=(q.get("h")||"");if(!/^[0-9a-f]{8}$/.test(H))H="";
+function show(id,on){$(id).className=on?"":"h"}
+show("g_act",mode==="sudo");show("g_cmd",mode==="cmd");show("g_pin",mode!=="ok");show("g_srv",mode!=="ok");show("g_user",mode!=="ok");
+if(mode==="ok"){show("okbox",true);$("code").textContent=H}
 if(!(window.crypto&&window.crypto.subtle))err.textContent="مرورگر WebCrypto ندارد.";
-document.getElementById("f").addEventListener("submit",function(e){
+$("f").addEventListener("submit",function(e){
   e.preventDefault();err.textContent="";
-  var q=new URLSearchParams(location.search),f=e.target;
-  var o={n:q.get("n")||"",pin:document.getElementById("pin").value,srv:f.srv.value,act:f.act.value,
-         user:document.getElementById("user").value,pw:document.getElementById("pw").value,t:Math.floor(Date.now()/1000)};
-  if(!o.n||!o.pin||!o.user||!o.pw){err.textContent="همهٔ فیلدها لازم است.";return}
+  var f=e.target,btn=$("go"),t=Math.floor(Date.now()/1000),o,n=q.get("n")||"",pw=$("pw").value;
+  if(mode==="ok"){
+    if(!n||!pw||!H){err.textContent="همهٔ فیلدها لازم است.";return}
+    o={k:"ok",n:n,pw:pw,t:t,h:H};
+  }else{
+    o={n:n,pin:$("pin").value,srv:f.srv.value,act:f.act.value,user:$("user").value,pw:pw,t:t};
+    if(mode==="cmd"){o.k="cmd";o.cmd=$("cmd").value;delete o.act;if(!o.cmd||o.cmd.length>1200){err.textContent="دستور خالی یا بیش از ۱۲۰۰ نویسه است.";return}}
+    if(!o.n||!o.pin||!o.user||!o.pw){err.textContent="همهٔ فیلدها لازم است.";return}
+  }
+  btn.disabled=true;
   enc(o).then(function(d){
     if(d.length>3800)throw new Error("too big");
     post(d);
-    document.getElementById("pin").value="";document.getElementById("pw").value="";document.getElementById("user").value="";
-  }).catch(function(x){err.textContent="خطا: "+x.message});
+    $("pin").value="";$("pw").value="";$("user").value="";$("cmd").value="";
+  }).catch(function(x){err.textContent="خطا: "+x.message;btn.disabled=false});
 });
 </script>
 </body>
