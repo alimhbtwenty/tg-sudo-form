@@ -18,6 +18,7 @@ h2{font-size:16px;margin:0 0 8px}
 .row{padding:6px 0;border-top:1px solid var(--bd)}
 .row:first-of-type{border-top:0}
 .mut{color:var(--mut);font-size:14px}
+.ltr{direction:ltr;text-align:right;unicode-bidi:isolate}
 .mono{font-family:monospace;direction:ltr;unicode-bidi:isolate;font-size:13px}
 .warn{color:var(--wr)}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -75,7 +76,7 @@ function render(d){
   if(!d||!Array.isArray(d.servers))empty(sv,"در دسترس نیست");
   else d.servers.forEach(function(s){
     var r=el("div","row"),ic=s.s==="g"?"🟢":s.s==="y"?"🟡":"🔴";
-    r.appendChild(el("div","",ic+" "+s.h));
+    r.appendChild(el("div","ltr",ic+" "+s.h));
     r.appendChild(el("div","mut mono","lock "+s.lock+" | exit "+s.exit+" | disk "+s.disk+"% | ram-free "+s.mem+"% | "+(s.ts>0?Math.max(0,Math.floor((Date.now()/1000-s.ts)/60)):"?")+"m"));
     if(Array.isArray(s.down)&&s.down.length)r.appendChild(el("div","warn mono","⚠ "+s.down.join(" ")));
     sv.appendChild(r);
@@ -85,7 +86,7 @@ function render(d){
   else if(!d.sessions.length)empty(se,"جلسه‌ای نیست");
   else d.sessions.forEach(function(s){
     var r=el("div","row");
-    r.appendChild(el("div","",(s.a?"▶ ":"")+s.n));
+    r.appendChild(el("div","ltr",(s.a?"▶ ":"")+s.n));
     r.appendChild(el("div","mut",[s.k,s.p,s.m].filter(Boolean).join(" · ")));
     btn("▶ استفاده","u_"+s.n,r);btn("⏹ توقف","x",r);btn("🗑 حذف","k_"+s.n,r);
     se.appendChild(r);
@@ -116,8 +117,8 @@ try{var m=/[#&]d=([A-Za-z0-9_-]+)/.exec(location.hash);if(m)data=unb64url(m[1])}
 render(data);
 $("refresh").addEventListener("click",function(){
   try{
-    if(data&&data.bot)post("web_app_open_tg_link",{path_full:"/"+data.bot+"?start=app_refresh"});
-    else post("web_app_data_send",{data:JSON.stringify({m:"app_refresh"})});
+    if(data&&data.bot){post("web_app_open_tg_link",{path_full:"/"+data.bot+"?start=app_refresh"});setTimeout(function(){try{post("web_app_close",{})}catch(e){}},300)}
+    else{$("age").textContent="برنامه را ببندید و از دکمهٔ App دوباره باز کنید.";post("web_app_data_send",{data:JSON.stringify({m:"app_refresh"})})}
   }catch(e){$("age").textContent="تازه‌سازی فقط داخل تلگرام کار می‌کند."}
 });
 </script>
