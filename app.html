@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>برنامه کرم</title>
+<style>
+:root{color-scheme:light dark;--bg:#fff;--fg:#111;--mut:#666;--bd:#ddd;--cd:#f4f4f6;--ac:#2a7ae4;--wr:#d33}
+@media(prefers-color-scheme:dark){:root{--bg:#1c1c1e;--fg:#eee;--mut:#999;--bd:#444;--cd:#2a2a2d;--ac:#4a9af4;--wr:#ff6b6b}}
+body{margin:0;padding:16px;background:var(--tg-theme-bg-color,var(--bg));color:var(--tg-theme-text-color,var(--fg));font:16px system-ui,sans-serif}
+main{max-width:460px;margin:0 auto}
+h1{font-size:20px;margin:0 0 4px}
+h2{font-size:16px;margin:0 0 8px}
+.age{color:var(--mut);font-size:14px;margin-bottom:14px}
+.age.old{color:var(--wr);font-weight:bold}
+.card{background:var(--cd);border:1px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:12px}
+.row{padding:6px 0;border-top:1px solid var(--bd)}
+.row:first-of-type{border-top:0}
+.mut{color:var(--mut);font-size:14px}
+.mono{font-family:monospace;direction:ltr;unicode-bidi:isolate;font-size:13px}
+.warn{color:var(--wr)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+button{padding:11px 6px;font-size:15px;border:0;border-radius:8px;background:var(--ac);color:#fff;width:100%}
+button:disabled{background:var(--bd);color:var(--mut)}
+#refresh{margin-bottom:12px;font-size:17px;padding:13px}
+</style>
+</head>
+<body>
+<main>
+<h1>برنامه کرم</h1>
+<div id="age" class="age"></div>
+<button id="refresh" type="button">🔄 تازه‌سازی</button>
+<div class="card"><h2>🖥 سرورها</h2><div id="servers"></div></div>
+<div class="card"><h2>⚙️ جلسه‌ها</h2><div id="sessions"></div></div>
+<div class="card"><h2>🖥 tmux</h2><div id="tmux"></div></div>
+<div class="card"><h2>منو</h2><div class="grid" id="menu"></div></div>
+</main>
+<script>
+function $(i){return document.getElementById(i)}
+function el(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=String(txt);return e}
+function unb64url(s){
+  s=s.replace(/-/g,"+").replace(/_/g,"/");while(s.length%4)s+="=";
+  var b=atob(s),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);
+  return JSON.parse(new TextDecoder("utf-8").decode(u));
+}
+function post(data){
+  var ev=JSON.stringify({eventType:"web_app_data_send",eventData:{data:data}});
+  if(window.TelegramWebviewProxy&&window.TelegramWebviewProxy.postEvent)window.TelegramWebviewProxy.postEvent("web_app_data_send",JSON.stringify({data:data}));
+  else if(window.external&&window.external.notify)window.external.notify(ev);
+  else if(window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.performAction)window.webkit.messageHandlers.performAction.postMessage(ev);
+  else{try{window.parent.postMessage(ev,"https://web.telegram.org")}catch(e){throw new Error("post failed")}}
+}
+function empty(box,txt){box.appendChild(el("div","mut",txt))}
+function render(d){
+  var age=$("age"),mins=d&&typeof d.t==="number"?Math.floor((Date.now()/1000-d.t)/60):null;
+  if(mins===null){age.textContent="داده‌ای نیست";age.className="age old"}
+  else{age.textContent="سن داده: "+Math.max(mins,0)+" دقیقه"+(mins>10?" - قدیمی است، تازه‌سازی را بزنید":"");age.className="age"+(mins>10?" old":"")}
+  var sv=$("servers");
+  if(!d||!Array.isArray(d.servers))empty(sv,"در دسترس نیست");
+  else d.servers.forEach(function(s){
+    var r=el("div","row"),ic=s.s==="g"?"🟢":s.s==="y"?"🟡":"🔴";
+    r.appendChild(el("div","",ic+" "+s.h));
+    r.appendChild(el("div","mut mono","lock "+s.lock+" | exit "+s.exit+" | disk "+s.disk+"% | ram-free "+s.mem+"% | "+s.age+"m"));
+    if(Array.isArray(s.down)&&s.down.length)r.appendChild(el("div","warn mono","⚠ "+s.down.join(" ")));
+    sv.appendChild(r);
+  });
+  var se=$("sessions");
+  if(!d||!Array.isArray(d.sessions))empty(se,"در دسترس نیست");
+  else if(!d.sessions.length)empty(se,"جلسه‌ای نیست");
+  else d.sessions.forEach(function(s){
+    var r=el("div","row");
+    r.appendChild(el("div","",(s.a?"▶ ":"")+s.n));
+    r.appendChild(el("div","mut",[s.k,s.p,s.m].filter(Boolean).join(" · ")));
+    se.appendChild(r);
+  });
+  var tm=$("tmux");
+  if(!d||!Array.isArray(d.tmux))empty(tm,"در دسترس نیست");
+  else if(!d.tmux.length)empty(tm,"جلسهٔ بازی نیست");
+  else d.tmux.forEach(function(n){var r=el("div","row");r.appendChild(el("div","mono",n));tm.appendChild(r)});
+  var mn=$("menu");
+  ["جلسهٔ جدید","tmux","sudo","دستور","صندوق رمز","PIN"].forEach(function(n){
+    var b=el("button","",n+" (به‌زودی)");b.disabled=true;mn.appendChild(b);
+  });
+}
+var data=null;
+try{var m=/[#&]d=([A-Za-z0-9_-]+)/.exec(location.hash);if(m)data=unb64url(m[1])}catch(e){data=null}
+render(data);
+$("refresh").addEventListener("click",function(){
+  try{post(JSON.stringify({m:"app_refresh"}))}
+  catch(e){$("age").textContent="تازه‌سازی فقط داخل تلگرام کار می‌کند."}
+});
+</script>
+</body>
+</html>
