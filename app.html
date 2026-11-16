@@ -22,6 +22,9 @@ h2{font-size:16px;margin:0 0 8px}
 .warn{color:var(--wr)}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 button{padding:11px 6px;font-size:15px;border:0;border-radius:8px;background:var(--ac);color:#fff;width:100%}
+.sm{width:auto;padding:6px 10px;font-size:14px;margin-inline-end:6px;margin-top:6px}
+.fm{margin-top:10px}
+select{font-size:15px;padding:8px;border-radius:8px;border:1px solid var(--bd);background:var(--bg);color:var(--fg);margin-inline-end:6px;margin-top:6px}
 button:disabled{background:var(--bd);color:var(--mut)}
 #refresh{margin-bottom:12px;font-size:17px;padding:13px}
 </style>
@@ -32,11 +35,12 @@ button:disabled{background:var(--bd);color:var(--mut)}
 <div id="age" class="age"></div>
 <button id="refresh" type="button">🔄 تازه‌سازی</button>
 <div class="card"><h2>🖥 سرورها</h2><div id="servers"></div></div>
-<div class="card"><h2>⚙️ جلسه‌ها</h2><div id="sessions"></div></div>
-<div class="card"><h2>🖥 tmux</h2><div id="tmux"></div></div>
+<div class="card"><h2>⚙️ جلسه‌ها</h2><div id="sessions"></div><div class="fm" id="newsess"></div></div>
+<div class="card"><h2>🖥 tmux</h2><div id="tmux"></div><div class="fm" id="newtmux"></div></div>
 <div class="card"><h2>منو</h2><div class="grid" id="menu"></div></div>
 </main>
 <script>
+var data=null;
 function $(i){return document.getElementById(i)}
 function el(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=String(txt);return e}
 function unb64url(s){
@@ -51,6 +55,14 @@ function post(type,obj){
   else if(window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.performAction)window.webkit.messageHandlers.performAction.postMessage(ev);
   else{try{window.parent.postMessage(ev,"https://web.telegram.org")}catch(e){throw new Error("post failed")}}
 }
+var OKP=/^[A-Za-z0-9_-]{1,64}$/;
+function act(p){
+  if(!data||!data.bot||!OKP.test(p)){$("age").textContent="عملیات ممکن نیست.";return}
+  try{post("web_app_open_tg_link",{path_full:"/"+data.bot+"?start="+p});setTimeout(function(){try{post("web_app_close",{})}catch(e){}},300)}
+  catch(e){$("age").textContent="این کار فقط داخل تلگرام ممکن است."}
+}
+function btn(txt,p,box){var b=el("button","sm",txt);b.type="button";b.addEventListener("click",function(){act(p)});box.appendChild(b);return b}
+function sel(opts){var s=document.createElement("select");opts.forEach(function(o){var e=el("option","",o[1]);e.value=o[0];s.appendChild(e)});return s}
 function empty(box,txt){box.appendChild(el("div","mut",txt))}
 function render(d){
   var age=$("age"),ref=null;
@@ -75,18 +87,28 @@ function render(d){
     var r=el("div","row");
     r.appendChild(el("div","",(s.a?"▶ ":"")+s.n));
     r.appendChild(el("div","mut",[s.k,s.p,s.m].filter(Boolean).join(" · ")));
+    btn("▶ استفاده","u_"+s.n,r);btn("⏹ توقف","x",r);btn("🗑 حذف","k_"+s.n,r);
     se.appendChild(r);
   });
   var tm=$("tmux");
   if(!d||!Array.isArray(d.tmux))empty(tm,"در دسترس نیست");
   else if(!d.tmux.length)empty(tm,"جلسهٔ بازی نیست");
-  else d.tmux.forEach(function(n){var r=el("div","row");r.appendChild(el("div","mono",n));tm.appendChild(r)});
+  else d.tmux.forEach(function(n){var r=el("div","row");r.appendChild(el("div","mono",n));btn("🗑 بستن","tk_"+n,r);tm.appendChild(r)});
+  btn("➕ tmux جدید","tn",$("newtmux"));
+  var ns=$("newsess");
+  if(d&&Array.isArray(d.proj)&&d.proj.length){
+    var kd=sel([["c","Claude"],["g","Gemini"]]),pj=sel(d.proj.map(function(p){return[p,p]})),md=sel([["o","opus"],["s","sonnet"],["h","haiku"]]);
+    kd.addEventListener("change",function(){md.style.display=kd.value==="c"?"":"none"});
+    ns.appendChild(kd);ns.appendChild(pj);ns.appendChild(md);
+    var go=el("button","sm","➕ جلسهٔ جدید");go.type="button";
+    go.addEventListener("click",function(){act(kd.value==="c"?"nc_"+md.value+"_"+pj.value:"ng_"+pj.value)});
+    ns.appendChild(go);
+  }
   var mn=$("menu");
-  ["جلسهٔ جدید","tmux","sudo","دستور","صندوق رمز","PIN"].forEach(function(n){
+  ["sudo","دستور","صندوق رمز","PIN"].forEach(function(n){
     var b=el("button","",n+" (به‌زودی)");b.disabled=true;mn.appendChild(b);
   });
 }
-var data=null;
 try{var m=/[#&]d=([A-Za-z0-9_-]+)/.exec(location.hash);if(m)data=unb64url(m[1])}catch(e){data=null}
 render(data);
 $("refresh").addEventListener("click",function(){
