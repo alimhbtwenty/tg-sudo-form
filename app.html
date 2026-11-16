@@ -37,7 +37,7 @@ button:disabled{background:var(--bd);color:var(--mut)}
 <div class="card"><h2>🖥 سرورها</h2><div id="servers"></div></div>
 <div class="card"><h2>⚙️ جلسه‌ها</h2><div id="sessions"></div><div class="fm" id="newsess"></div></div>
 <div class="card"><h2>🖥 tmux</h2><div id="tmux"></div><div class="fm" id="newtmux"></div></div>
-<div class="card"><h2>منو</h2><div class="grid" id="menu"></div></div>
+<div class="card"><h2>🔐 sudo و صندوق رمز</h2><div id="secst"></div><div class="fm" id="secbtn"></div></div>
 </main>
 <script>
 var data=null;
@@ -104,10 +104,13 @@ function render(d){
     go.addEventListener("click",function(){act(kd.value==="c"?"nc_"+md.value+"_"+pj.value:"ng_"+pj.value)});
     ns.appendChild(go);
   }
-  var mn=$("menu");
-  ["sudo","دستور","صندوق رمز","PIN"].forEach(function(n){
-    var b=el("button","",n+" (به‌زودی)");b.disabled=true;mn.appendChild(b);
-  });
+  var st=$("secst"),now=Date.now()/1000,v=d&&d.vault,su=d&&d.sudo;
+  var vt=!Array.isArray(v)?"صندوق رمز: نامشخص":v[0]==="u"?"صندوق رمز: 🔓 باز، "+Math.max(0,Math.floor(v[1]-now/60))+" دقیقه مانده":v[0]==="n"?"صندوق رمز: ساخته نشده":"صندوق رمز: 🔒 بسته";
+  st.appendChild(el("div","row",vt));
+  st.appendChild(el("div","row",!Array.isArray(su)?"sudo: نامشخص":su.length?"sudo: روشن "+su.map(function(x){return x.s+" تا "+Math.max(0,Math.floor((x.e-now)/60))+" دقیقه"}).join("، "):"sudo: خاموش"));
+  var sb=$("secbtn");
+  btn("sudo","su",sb);btn("دستور","cm",sb);btn("PIN","pn",sb);
+  btn("🔓 ۱۵ دقیقه","vu_15",sb);btn("🔓 ۳۰ دقیقه","vu_30",sb);btn("🔓 ۶۰ دقیقه","vu_60",sb);btn("🔒 بستن صندوق","vl",sb);
 }
 try{var m=/[#&]d=([A-Za-z0-9_-]+)/.exec(location.hash);if(m)data=unb64url(m[1])}catch(e){data=null}
 render(data);
