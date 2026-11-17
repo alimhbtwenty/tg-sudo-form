@@ -6,8 +6,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>برنامه کرم</title>
 <style>
-:root{color-scheme:light dark;--bg:#fff;--sec:#f1f2f5;--card:#fff;--fg:#111;--mut:#6b7078;--bd:#e2e4e9;--ac:#2a7ae4;--acf:#fff;--wr:#d33;--ok:#1f9d55;--yl:#c98a00}
-@media(prefers-color-scheme:dark){:root{--bg:#17181a;--sec:#0f1011;--card:#232427;--fg:#eee;--mut:#9aa0a8;--bd:#34363a;--ac:#4a9af4;--acf:#fff;--wr:#ff7b7b;--ok:#4cd080;--yl:#e8b53a}}
+:root{color-scheme:light dark;--bg:#fff;--sec:#f1f2f5;--card:#fff;--fg:#111;--mut:#6b7078;--bd:#e2e4e9;--ac:#2a7ae4;--acf:#fff;--wr:#d33;--ok:#15733e;--yl:#c98a00}
+@media(prefers-color-scheme:dark){:root{--bg:#17181a;--sec:#0f1011;--card:#232427;--fg:#eee;--mut:#9aa0a8;--bd:#34363a;--ac:#2f7fd8;--acf:#fff;--wr:#ff7b7b;--ok:#4cd080;--yl:#e8b53a}}
 *{box-sizing:border-box}
 body{margin:0;padding:16px;background:var(--tg-theme-secondary-bg-color,var(--sec));color:var(--tg-theme-text-color,var(--fg));font:15px/1.6 Vazirmatn,"Segoe UI",system-ui,sans-serif;-webkit-text-size-adjust:100%}
 main{max-width:460px;margin:0 auto}
@@ -22,7 +22,7 @@ h2{font-size:14px;font-weight:600;margin:0 0 10px;color:var(--tg-theme-hint-colo
 .row:last-child{padding-bottom:0}
 .mut{color:var(--tg-theme-hint-color,var(--mut));font-size:13px}
 .ltr{direction:ltr;text-align:right;unicode-bidi:isolate;overflow-wrap:anywhere}
-.mono{font-family:ui-monospace,Menlo,Consolas,monospace;direction:ltr;unicode-bidi:isolate;font-size:13px;overflow-wrap:anywhere}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace;direction:ltr;unicode-bidi:isolate;text-align:right;font-size:13px;overflow-wrap:anywhere}
 .name{font-weight:600}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .chip{font-size:12px;line-height:1.5;padding:2px 9px;border-radius:99px;background:var(--tg-theme-secondary-bg-color,var(--sec));color:var(--tg-theme-hint-color,var(--mut));white-space:nowrap}
@@ -146,7 +146,7 @@ function render(d){
   chip(st,!Array.isArray(su)?"sudo: نامشخص":su.length?"sudo روشن: "+su.map(function(x){return x.s+" تا "+fa(Math.max(0,Math.floor((x.e-now)/60)))+" دقیقه"}).join("، "):"sudo خاموش",Array.isArray(su)&&su.length?"ok":"");
   var sb=$("secbtn"),g;
   sb.appendChild(el("div","lab","صندوق رمز"));
-  g=el("div","grid g3");btn(fa(15)+" دقیقه","vu_15",g);btn(fa(30)+" دقیقه","vu_30",g);btn(fa(60)+" دقیقه","vu_60",g);sb.appendChild(g);
+  g=el("div","grid g3");btn("🔓 "+fa(15)+" دقیقه","vu_15",g);btn("🔓 "+fa(30)+" دقیقه","vu_30",g);btn("🔓 "+fa(60)+" دقیقه","vu_60",g);sb.appendChild(g);
   g=el("div","grid");btn("🔒 قفل صندوق","vl",g,"del").style.gridColumn="1/-1";sb.appendChild(g);
   sb.appendChild(el("div","lab","ابزارها"));
   g=el("div","grid");btn("🔑 درخواست sudo","su",g,"sec");btn("⌨️ اجرای دستور","cm",g,"sec");btn("🔢 PIN","pn",g,"sec");btn("🛰 رویدادهای تونل","ev",g,"sec");sb.appendChild(g);
