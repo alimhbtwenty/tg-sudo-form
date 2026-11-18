@@ -2,7 +2,7 @@
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'; connect-src https://91.220.113.145">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>sudo form</title>
 <style>
@@ -18,6 +18,8 @@ textarea{min-height:120px;font-family:monospace}
 button{margin-top:22px;width:100%;padding:12px;font-size:17px;border:0;border-radius:8px;background:var(--ac);color:#fff}
 button:disabled{opacity:.5}
 #err{color:#d33;margin-top:12px;min-height:1.2em}
+#out{margin-top:16px;white-space:pre-wrap;overflow-wrap:anywhere}
+#out a{display:block;margin-top:14px;color:var(--ac)}
 #code{font-size:20px;font-family:monospace;direction:ltr;text-align:center}
 </style>
 </head>
@@ -34,6 +36,7 @@ button:disabled{opacity:.5}
 <label for="pw">رمز</label><input id="pw" type="password" autocomplete="off">
 <button id="go" type="submit">ارسال</button>
 <div id="err"></div>
+<div id="out"></div>
 </form>
 <script>
 var PUB="MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEAz8gFcB5c53nQ3Jxep7pX7n3fuR1EWtfSHFtUlBFsKgLLJhGh31/5s0qngPHpChIm0Rx1bPgMbUKbRssX1erN1BC5DaSOzTAId+zZB2L/af7pA2mAqERlreQ3mZbd6wVi3E4ep8zK50350ApLUepLti/PhX/B4ttKXxXDh3kUGHLqZph0G8ZERFnqQFKsV2iUl+lih12i12VrEQrpvjJxofqRCXVno3Zq/Aw1yZbWPnRkKuEs3GX/C3VTsGHVKbfSONheVmrOzuvt6FP7xb0aMouVQ+0yNhayPoahv1AyP6UdrIEzyY2XoBM0yKT65VxqV1gBU/Gf5K+qHMCExPaxv2v0/tkkjtTePae3VPXZE+j7HUvY9uEQ8o5CcwPSHRV6D0Pi+Q9thgunolWkxARz7f5JOeIKWee5UAovppAq19CLXJs7IwTgNk0fvbPMe8yRLhILft49yKo7vFdH/AD/KdlOWJyEvFtD//fwlx0SRGJSAdMqsiJExwDwYmjUOU/bAgMBAAE=";
@@ -61,6 +64,19 @@ function post(data){
   else{try{window.parent.postMessage(ev,"https://web.telegram.org")}catch(e){throw new Error("post failed")}}
 }
 function $(i){return document.getElementById(i)}
+var API=new URLSearchParams(location.search).get("api")==="1";
+function initd(){var m=/[#&]tgWebAppData=([^&]*)/.exec(location.hash);try{return m?decodeURIComponent(m[1]):""}catch(e){return ""}}
+function sendApi(d){
+  return fetch("https://91.220.113.145/wormapp/sudo",{method:"POST",headers:{"Authorization":"tma "+initd(),"Content-Type":"application/json"},body:JSON.stringify({data:d})}).then(function(r){
+    if(r.status===403)throw new Error("auth");
+    return r.json();
+  });
+}
+function apiDone(r){
+  if(r.need==="form"&&r.url){$("out").textContent=r.text||"";var a=document.createElement("a");a.href=r.url+location.hash;a.textContent="ادامه: تأیید دستور";$("out").appendChild(a);return}
+  $("f").style.display="none";$("out").textContent=r.text||(r.ok?"انجام شد.":"انجام نشد.");
+  var b=document.createElement("a");b.href="app.html"+location.hash;b.textContent="بازگشت به برنامه";$("out").appendChild(b);
+}
 var err=$("err"),q=new URLSearchParams(location.search),mode=q.get("m")==="cmd"?"cmd":q.get("m")==="ok"?"ok":"sudo";
 var H=(q.get("h")||"");if(!/^[0-9a-f]{8}$/.test(H))H="";
 function show(id,on){$(id).className=on?"":"h"}
@@ -81,8 +97,9 @@ $("f").addEventListener("submit",function(e){
   btn.disabled=true;
   enc(o).then(function(d){
     if(d.length>3800)throw new Error("too big");
-    post(d);
     $("pin").value="";$("pw").value="";$("user").value="";$("cmd").value="";
+    if(!API){post(d);return}
+    return sendApi(d).then(apiDone).catch(function(x){err.textContent=x.message==="auth"?"دسترسی رد شد؛ از برنامه دوباره وارد شوید.":"سرور در دسترس نیست";btn.disabled=false});
   }).catch(function(x){err.textContent="خطا: "+x.message;btn.disabled=false});
 });
 </script>

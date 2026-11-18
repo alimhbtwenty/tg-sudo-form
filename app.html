@@ -2,7 +2,7 @@
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src https://91.220.113.145">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>برنامه کرم</title>
 <style>
@@ -47,6 +47,15 @@ select{padding-inline:6px;border:1px solid var(--bd);background:var(--tg-theme-b
 #refresh{width:auto;min-width:130px}
 .fm{margin-top:12px;padding-top:12px;border-top:1px solid var(--bd)}
 .st{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+[hidden]{display:none!important}
+.res{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px}
+.res.bad{color:var(--tg-theme-destructive-text-color,var(--wr))}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px;z-index:9}
+.dl{background:var(--tg-theme-bg-color,var(--bg));border-radius:14px;padding:16px;width:100%;max-width:380px;max-height:90vh;overflow:auto}
+.dm{white-space:pre-wrap;overflow-wrap:anywhere;margin-bottom:10px}
+.dl input{width:100%;min-height:44px;margin:4px 0 8px;padding:8px 12px;font-size:16px;border:1px solid var(--bd);border-radius:10px;background:var(--tg-theme-secondary-bg-color,var(--sec));color:inherit;direction:ltr;text-align:left}
+.dl .acts button{min-width:88px}
+.dl .opt{width:100%;margin-bottom:8px}
 @media(prefers-reduced-motion:reduce){button{transition:none}}
 </style>
 </head>
@@ -54,6 +63,7 @@ select{padding-inline:6px;border:1px solid var(--bd);background:var(--tg-theme-b
 <main>
 <div class="top"><h1>برنامه کرم</h1><button id="refresh" type="button" class="sec">🔄 تازه‌سازی</button></div>
 <div id="age" class="age" aria-live="polite"></div>
+<div id="res" class="card res" role="status" aria-live="polite" hidden></div>
 <div class="card"><h2>🖥 سرورها</h2><div id="servers"></div></div>
 <div class="card"><h2>⚙️ جلسه‌ها</h2><div id="sessions"></div><div class="fm acts" id="newsess"></div></div>
 <div class="card"><h2>🖥 tmux</h2><div id="tmux"></div><div class="fm" id="newtmux"></div></div>
@@ -69,13 +79,6 @@ function unb64url(s){
   var b=atob(s),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);
   return JSON.parse(new TextDecoder("utf-8").decode(u));
 }
-function post(type,obj){
-  var ev=JSON.stringify({eventType:type,eventData:obj});
-  if(window.TelegramWebviewProxy&&window.TelegramWebviewProxy.postEvent)window.TelegramWebviewProxy.postEvent(type,JSON.stringify(obj));
-  else if(window.external&&window.external.notify)window.external.notify(ev);
-  else if(window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.performAction)window.webkit.messageHandlers.performAction.postMessage(ev);
-  else{try{window.parent.postMessage(ev,"https://web.telegram.org")}catch(e){throw new Error("post failed")}}
-}
 var OKP=/^[A-Za-z0-9_-]{1,64}$/;
 function theme(){
   try{var m=/[#&]tgWebAppThemeParams=([^&]+)/.exec(location.hash);if(!m)return;
@@ -83,17 +86,83 @@ function theme(){
     for(var k in t)if(/^[a-z_]+$/.test(k)&&/^#[0-9a-fA-F]{3,8}$/.test(t[k]))document.documentElement.style.setProperty("--tg-theme-"+k.replace(/_/g,"-"),t[k]);
   }catch(e){}
 }
-function act(p){
-  if(!data||!data.bot||!OKP.test(p)){$("age").textContent="عملیات ممکن نیست.";return}
-  try{post("web_app_open_tg_link",{path_full:"/"+data.bot+"?start="+p});setTimeout(function(){try{post("web_app_close",{})}catch(e){}},300)}
-  catch(e){$("age").textContent="این کار فقط داخل تلگرام ممکن است."}
+var API="https://91.220.113.145/wormapp/",PUB="MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEAz8gFcB5c53nQ3Jxep7pX7n3fuR1EWtfSHFtUlBFsKgLLJhGh31/5s0qngPHpChIm0Rx1bPgMbUKbRssX1erN1BC5DaSOzTAId+zZB2L/af7pA2mAqERlreQ3mZbd6wVi3E4ep8zK50350ApLUepLti/PhX/B4ttKXxXDh3kUGHLqZph0G8ZERFnqQFKsV2iUl+lih12i12VrEQrpvjJxofqRCXVno3Zq/Aw1yZbWPnRkKuEs3GX/C3VTsGHVKbfSONheVmrOzuvt6FP7xb0aMouVQ+0yNhayPoahv1AyP6UdrIEzyY2XoBM0yKT65VxqV1gBU/Gf5K+qHMCExPaxv2v0/tkkjtTePae3VPXZE+j7HUvY9uEQ8o5CcwPSHRV6D0Pi+Q9thgunolWkxARz7f5JOeIKWee5UAovppAq19CLXJs7IwTgNk0fvbPMe8yRLhILft49yKo7vFdH/AD/KdlOWJyEvFtD//fwlx0SRGJSAdMqsiJExwDwYmjUOU/bAgMBAAE=",busy=false;
+function b64(buf){var s="",u=new Uint8Array(buf);for(var i=0;i<u.length;i++)s+=String.fromCharCode(u[i]);return btoa(s)}
+function unb64(s){var b=atob(s),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u}
+function enc(obj){
+  var s=window.crypto&&window.crypto.subtle;
+  if(!s)return Promise.reject(new Error("no webcrypto"));
+  var aes,iv=crypto.getRandomValues(new Uint8Array(12));
+  return s.generateKey({name:"AES-GCM",length:256},true,["encrypt"]).then(function(k){
+    aes=k;return s.encrypt({name:"AES-GCM",iv:iv},k,new TextEncoder().encode(JSON.stringify(obj)))
+  }).then(function(c){
+    return s.exportKey("raw",aes).then(function(raw){
+      return s.importKey("spki",unb64(PUB),{name:"RSA-OAEP",hash:"SHA-256"},false,["encrypt"]).then(function(pk){
+        return s.encrypt({name:"RSA-OAEP"},pk,raw)
+      }).then(function(wk){return btoa(JSON.stringify({v:1,k:b64(wk),iv:b64(iv),c:b64(c)}))})
+    })
+  })
 }
+function initd(){
+  var m=/[#&]tgWebAppData=([^&]*)/.exec(location.hash),v="";
+  try{if(m){v=decodeURIComponent(m[1]);sessionStorage.setItem("wi",v)}else v=sessionStorage.getItem("wi")||""}catch(e){}
+  return v;
+}
+function call(path,body){
+  return fetch(API+path,{method:"POST",headers:{"Authorization":"tma "+initd(),"Content-Type":"application/json"},body:JSON.stringify(body||{})}).then(function(r){
+    if(r.status===403)throw new Error("auth");
+    if(r.status===429)throw new Error("rate");
+    return r.json();
+  });
+}
+function say(t,bad){var r=$("res");r.hidden=!t;r.textContent=t||"";r.className="card res"+(bad?" bad":"")}
+function fail(e){var m=e&&e.message;say(m==="auth"?"دسترسی رد شد؛ برنامه را از دکمهٔ App در تلگرام دوباره باز کنید.":m==="rate"?"درخواست‌ها زیاد است؛ کمی صبر کنید.":"سرور در دسترس نیست",true)}
+function shown(r){if(r&&r.state){data=r.state;render(data)}}
+function dlg(msg,fields,ok,label,opts){
+  var o=el("div","ov"),c=el("div","dl");c.setAttribute("role","dialog");c.appendChild(el("div","dm",msg));
+  function close(){if(o.parentNode)o.parentNode.removeChild(o)}
+  var ins=fields.map(function(f){var i=document.createElement("input");i.type="password";i.autocomplete="off";i.placeholder=f.p;if(f.n)i.inputMode="numeric";c.appendChild(i);return i});
+  (opts||[]).forEach(function(p){var b=el("button","opt sec",p[1]);b.type="button";b.addEventListener("click",function(){close();ok(p[0])});c.appendChild(b)});
+  var a=el("div","acts"),n=el("button","sec","انصراف");n.type="button";n.addEventListener("click",close);
+  if(!opts){var y=el("button","",label||"تأیید");y.type="button";y.addEventListener("click",function(){var v=ins.map(function(i){return i.value});close();ok(v)});a.appendChild(y)}
+  a.appendChild(n);c.appendChild(a);o.appendChild(c);document.body.appendChild(o);if(ins[0])ins[0].focus();
+}
+function secret(p,r){
+  var f=[];
+  if(r.need==="vaultpw")f.push({p:"رمز گاوصندوق"});
+  else if(p==="pn"){if(r.old)f.push({p:"PIN فعلی",n:1});f.push({p:"PIN جدید (۶ تا ۱۲ رقم)",n:1})}
+  else f.push({p:"PIN",n:1});
+  dlg(r.text,f,function(v){
+    var o={n:r.nonce,t:Math.floor(Date.now()/1000)};
+    if(r.need==="vaultpw")o.pw=v[0];
+    else if(p==="pn"){if(r.old){o.pin=v[0];o.new=v[1]}else o.new=v[0]}
+    else o.pin=v[0];
+    enc(o).then(function(d){run(p,{enc:d})}).catch(function(){say("رمزنگاری در این مرورگر ممکن نیست.",true)});
+  },"ارسال");
+}
+function handle(p,r){
+  shown(r);
+  if(r.need==="confirm")return dlg(r.text,[],function(){run(p,{confirm:true})},"تأیید");
+  if(r.need==="choose")return dlg(r.text,[],function(v){run(p,{arg:v})},"",(r.options||[]).map(function(o){return[o.v,o.t]}));
+  if(r.need==="pin"||r.need==="vaultpw")return secret(p,r);
+  if(r.need==="form"&&r.url){location.href=r.url+location.hash;return}
+  var notes=r.state&&r.state.notes&&r.state.notes.length?r.state.notes.join("\n"):"";
+  say(r.text||notes||(r.ok?"انجام شد.":"انجام نشد."),!r.ok);
+}
+function run(p,x){
+  if(!OKP.test(p)){say("عملیات ممکن نیست.",true);return}
+  if(busy)return;busy=true;
+  var body={action:p};for(var k in(x||{}))body[k]=x[k];
+  call("act",body).then(function(r){busy=false;handle(p,r)}).catch(function(e){busy=false;fail(e)});
+}
+function act(p){run(p)}
 function btn(txt,p,box,cls){var b=el("button",cls||"",txt);b.type="button";b.addEventListener("click",function(){act(p)});box.appendChild(b);return b}
 function sel(opts){var s=document.createElement("select");opts.forEach(function(o){var e=el("option","",o[1]);e.value=o[0];s.appendChild(e)});return s}
 function empty(box,txt){box.appendChild(el("div","mut",txt))}
 function chip(box,txt,cls){box.appendChild(el("span","chip "+(cls||""),txt))}
 function ago(ts){return ts>0?fa(Math.max(0,Math.floor((Date.now()/1000-ts)/60)))+" دقیقه پیش":"نامشخص"}
 function render(d){
+  ["servers","sessions","tmux","newtmux","newsess","secst","secbtn"].forEach(function(i){$(i).textContent=""});$("newsess").style.display="";
   var age=$("age"),ref=null;
   if(d&&Array.isArray(d.servers)){d.servers.forEach(function(s){if(s&&s.ts>0&&(ref===null||s.ts<ref))ref=s.ts})}
   if(ref===null&&d&&typeof d.t==="number")ref=d.t;
@@ -153,14 +222,12 @@ function render(d){
 }
 try{var m=/[#&]d=([A-Za-z0-9_-]+)/.exec(location.hash);if(m)data=unb64url(m[1])}catch(e){data=null}
 theme();render(data);
-$("refresh").addEventListener("click",function(){
-  var b=this;b.disabled=true;b.textContent="در حال دریافت…";
-  function back(){b.disabled=false;b.textContent="🔄 تازه‌سازی"}
-  try{
-    if(data&&data.bot){post("web_app_open_tg_link",{path_full:"/"+data.bot+"?start=app_refresh"});setTimeout(function(){try{post("web_app_close",{})}catch(e){}back()},300)}
-    else{$("age").textContent="برنامه را ببندید و از دکمهٔ App دوباره باز کنید.";post("web_app_data_send",{data:JSON.stringify({m:"app_refresh"})});setTimeout(back,1500)}
-  }catch(e){$("age").textContent="تازه‌سازی فقط داخل تلگرام کار می‌کند.";back()}
-});
+function refresh(){
+  var b=$("refresh");b.disabled=true;b.textContent="در حال دریافت…";
+  call("state",{}).then(function(r){shown(r);var n=r.state&&r.state.notes&&r.state.notes.length?r.state.notes.join("\n"):"";say(n)}).catch(fail).then(function(){b.disabled=false;b.textContent="🔄 تازه‌سازی"});
+}
+$("refresh").addEventListener("click",refresh);
+refresh();
 </script>
 </body>
 </html>
