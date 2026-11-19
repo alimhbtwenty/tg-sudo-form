@@ -1012,7 +1012,8 @@ select:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .agylink { display: block; margin: 10px 0; padding: 12px; min-height: 44px; border-radius: 12px; background: var(--card); color: var(--gold-text); font-weight: 800; text-align: center; text-decoration: underline; }
 .agybox input, .term-in { width: 100%; box-sizing: border-box; min-height: 44px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: inherit; font: inherit; direction: ltr; text-align: left; margin-top: 8px; }
 .agybox input:focus, .term-in:focus { border-color: var(--gold); outline: none; }
-.termscreen { direction: ltr; text-align: left; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px; line-height: 1.4; background: #0d0c0a; color: #e8e2d4; border-radius: 12px; padding: 10px; height: 260px; overflow: auto; white-space: pre; margin: 10px 0 0; }
+.termscreen { direction: ltr; text-align: left; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px; line-height: 1.4; background: #0d0c0a; color: #e8e2d4; border-radius: 12px; padding: 10px; height: 260px; overflow: auto; white-space: pre; margin: 10px 0 0; -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
+.termscreen.frozen { outline: 2px solid #c9a227; }
 .termkeys { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .termkeys button { flex: 1 1 56px; min-width: 56px; padding-inline: 8px; }
 .termrow { display: flex; gap: 8px; align-items: stretch; }
@@ -1969,15 +1970,21 @@ function openTerm(blob){
     say(r.text||"باز نشد.",true);
   }).catch(fail);
 }
+var frozen=false;
+function selIn(n){try{var g=window.getSelection();return !!(n&&g&&!g.isCollapsed&&g.rangeCount&&n.contains(g.getRangeAt(0).commonAncestorContainer))}catch(e){return false}}
+function copyText(t){
+  function old(){var a=document.createElement("textarea");a.value=t;a.setAttribute("readonly","");a.style.position="fixed";a.style.opacity="0";document.body.appendChild(a);a.select();var ok=false;try{ok=document.execCommand("copy")}catch(e){}document.body.removeChild(a);say(ok?"کپی شد.":"کپی نشد؛ متن را نگه دارید و انتخاب کنید.",!ok)}
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(function(){say("کپی شد.")},old);else old();
+}
 function startPoll(){
   if(timer)clearInterval(timer);
   timer=setInterval(function(){
-    if(!sid||polling||document.hidden||$("tab-agy").hidden)return;
+    if(!sid||polling||frozen||document.hidden||$("tab-agy").hidden||selIn($("tscreen")))return;
     polling=true;
     termCall({op:"view",target:target}).then(function(r){
       polling=false;var s=$("tscreen");if(!s)return;
       if(r.expired){say(r.text,true);stopTerm();return}
-      if(r.ok){var stick=s.scrollTop+s.clientHeight>=s.scrollHeight-8;s.textContent=r.screen;if(stick)s.scrollTop=s.scrollHeight}
+      if(r.ok){if(frozen||selIn(s)||s.textContent===r.screen)return;var stick=s.scrollTop+s.clientHeight>=s.scrollHeight-8;s.textContent=r.screen;if(stick)s.scrollTop=s.scrollHeight}
       else s.textContent=r.text||"";
     }).catch(function(e){polling=false;stopTerm();fail(e)});
   },1000);
@@ -2000,6 +2007,10 @@ function drawTerm(targets){
   var s=sel((targets||[]).map(function(t){return[t.v,t.t]}));s.value=target;s.style.width="100%";
   s.addEventListener("change",function(){target=s.value;var p=$("tscreen");if(p)p.textContent=""});box.appendChild(s);
   var p=el("pre","termscreen");p.id="tscreen";p.dir="ltr";p.setAttribute("aria-label","صفحهٔ ترمینال");box.appendChild(p);
+  var cr=el("div","termkeys"),cb=el("button","sec","کپی همه"),fb=el("button","sec",frozen?"ادامه":"مکث");cb.type="button";fb.type="button";
+  cb.addEventListener("click",function(){var g="";try{g=selIn(p)?String(window.getSelection()):""}catch(e){}copyText(g||p.textContent||"")});
+  fb.addEventListener("click",function(){frozen=!frozen;fb.textContent=frozen?"ادامه":"مکث";p.classList.toggle("frozen",frozen)});
+  p.classList.toggle("frozen",frozen);cr.appendChild(cb);cr.appendChild(fb);box.appendChild(cr);
   var row=el("div","termrow"),i=document.createElement("input");i.type="text";i.className="term-in";i.dir="ltr";i.autocomplete="off";i.setAttribute("autocapitalize","off");i.setAttribute("autocorrect","off");i.setAttribute("enterkeyhint","send");i.placeholder="یک خط بنویسید";
   var b=el("button","","ارسال");b.type="button";row.appendChild(i);row.appendChild(b);box.appendChild(row);
   b.addEventListener("click",function(){sendLine(i)});
