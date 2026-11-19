@@ -880,6 +880,14 @@ select:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .dl input:focus { border-color: var(--gold); outline: none; }
 .dl .acts { display: flex; gap: 10px; margin-top: 14px; }
 .dl .acts button { flex: 1; }
+.dl .flab { display: block; margin: 8px 0 2px; color: var(--dim); font-size: 13px; }
+.dl textarea { width: 100%; min-height: 96px; margin: 6px 0 12px; padding: 10px 14px; font-size: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--card-2); color: inherit; font-family: ui-monospace, Menlo, Consolas, monospace; direction: ltr; text-align: left; }
+.dl textarea:focus { border-color: var(--gold); outline: none; }
+.dl .rad { display: flex; gap: 10px; margin: 6px 0 12px; }
+.dl .rad label { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; border: 1px solid var(--line); border-radius: 12px; background: var(--card-2); font-family: ui-monospace, Menlo, Consolas, monospace; direction: ltr; }
+.dl .rad input { width: auto; min-height: 0; margin: 0; accent-color: var(--gold); }
+.dl .fcode { font-size: 22px; text-align: center; direction: ltr; font-family: ui-monospace, Menlo, Consolas, monospace; margin: 8px 0 12px; color: var(--gold); }
+.dl .ferr { color: var(--bad, #e5534b); min-height: 1.2em; font-size: 13.5px; }
 .dl .opt { width: 100%; margin-bottom: 8px; text-align: right; justify-content: flex-start; }
 
 @keyframes sheetSlideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
@@ -1426,12 +1434,75 @@ function secret(p,r){
   },"ارسال");
 }
 
+function formSheet(url,txt){
+  var q;try{q=new URL(url).searchParams}catch(e){say("آدرس فرم نامعتبر است.",true);return}
+  var mode=q.get("m")==="cmd"?"cmd":q.get("m")==="ok"?"ok":"sudo",n=q.get("n")||"",H=q.get("h")||"";
+  if(!/^[0-9a-f]{8}$/.test(H))H="";
+  var o=el("div","ov"),c=el("div","dl sheet");c.setAttribute("role","dialog");c.setAttribute("aria-modal","true");
+  c.appendChild(el("div","sheet-handle"));
+  c.appendChild(el("div","dm",txt||(mode==="cmd"?"اجرای دستور با sudo":mode==="ok"?"تأیید دستور":"فعال‌سازی sudo")));
+  var pin,user,cmd,pw,srv="core-linux",act="on";
+  function lab(t){c.appendChild(el("span","flab",t))}
+  function inp(type,fa_){var i=document.createElement("input");i.type=type;i.autocomplete="off";i.autocapitalize="off";i.spellcheck=false;i.dir="ltr";c.appendChild(i);return i}
+  function rad(name,items,cur){
+    var w=el("div","rad");
+    items.forEach(function(it){var l=document.createElement("label"),r=document.createElement("input");r.type="radio";r.name=name;r.value=it[0];r.checked=it[0]===cur;
+      r.addEventListener("change",function(){if(name==="srv")srv=it[0];else act=it[0]});l.appendChild(r);l.appendChild(document.createTextNode(it[1]));w.appendChild(l)});
+    c.appendChild(w);
+  }
+  if(mode==="ok"){var fc=el("div","fcode",H);c.appendChild(fc)}
+  if(mode!=="ok"){
+    lab("PIN");pin=inp("password");pin.inputMode="numeric";pin.id="fs_pin";
+    lab("سرور");rad("srv",[["core-linux","core-linux"],["claude-linux","claude-linux"]],srv);
+    if(mode==="sudo"){lab("عملیات");rad("act",[["on","فعال"],["off","غیرفعال"]],act)}
+    if(mode==="cmd"){lab("دستور");cmd=document.createElement("textarea");cmd.id="fs_cmd";cmd.maxLength=1200;cmd.autocomplete="off";cmd.autocapitalize="off";cmd.spellcheck=false;cmd.dir="ltr";c.appendChild(cmd)}
+    lab("نام کاربری");user=inp("text");user.id="fs_user";
+  }
+  lab("رمز");pw=inp("password");pw.id="fs_pw";
+  var er=el("div","ferr");c.appendChild(er);
+  var out=el("div","dm");c.appendChild(out);
+  var a=el("div","acts"),go=el("button","","ارسال"),cn=el("button","sec","انصراف");go.type="button";cn.type="button";
+  function close(){
+    [pin,user,cmd,pw].forEach(function(i){if(i)i.value=""});
+    c.classList.add("sheet-closing");o.classList.add("ov-closing");
+    setTimeout(function(){if(o.parentNode)o.parentNode.removeChild(o)},180);
+  }
+  o.addEventListener("click",function(e){if(e.target===o)close()});
+  cn.addEventListener("click",close);
+  go.addEventListener("click",function(){
+    er.textContent="";
+    var t=Math.floor(Date.now()/1000),b;
+    if(mode==="ok"){
+      if(!n||!pw.value||!H){er.textContent="همهٔ فیلدها لازم است.";return}
+      b={k:"ok",n:n,pw:pw.value,t:t,h:H};
+    }else{
+      b={n:n,pin:pin.value,srv:srv,act:act,user:user.value,pw:pw.value,t:t};
+      if(mode==="cmd"){b.k="cmd";b.cmd=cmd.value;delete b.act;if(!b.cmd||b.cmd.length>1200){er.textContent="دستور خالی یا بیش از "+fa(1200)+" نویسه است.";return}}
+      if(!b.n||!b.pin||!b.user||!b.pw){er.textContent="همهٔ فیلدها لازم است.";return}
+    }
+    go.disabled=true;
+    enc(b).then(function(d){
+      if(d.length>3800)throw new Error("too big");
+      [pin,user,cmd,pw].forEach(function(i){if(i)i.value=""});
+      return call("sudo",{data:d}).then(function(r){
+        if(r.need==="form"&&r.url){close();formSheet(r.url,r.text);return}
+        close();shown(r);say(r.text||(r.ok?"انجام شد.":"انجام نشد."),!r.ok);
+      });
+    }).catch(function(x){
+      go.disabled=false;
+      er.textContent=x&&x.message==="auth"?"دسترسی رد شد؛ برنامه را از دکمهٔ App در تلگرام دوباره باز کنید.":x&&x.message==="rate"?"درخواست‌ها زیاد است؛ کمی صبر کنید.":x&&x.message==="no webcrypto"?"مرورگر WebCrypto ندارد.":"سرور در دسترس نیست";
+    });
+  });
+  a.appendChild(go);a.appendChild(cn);c.appendChild(a);o.appendChild(c);document.body.appendChild(o);
+  var f=pin||pw;f.focus();
+}
+
 function handle(p,r){
   shown(r);
   if(r.need==="confirm")return dlg(r.text,[],function(){run(p,{confirm:true})},"تأیید");
   if(r.need==="choose")return dlg(r.text,[],function(v){run(p,{arg:v})},"",(r.options||[]).map(function(o){return[o.v,o.t]}));
   if(r.need==="pin"||r.need==="vaultpw")return secret(p,r);
-  if(r.need==="form"&&r.url){location.href=r.url+location.hash;return}
+  if(r.need==="form"&&r.url)return formSheet(r.url,r.text);
   var notes=r.state&&r.state.notes&&r.state.notes.length?r.state.notes.join("\n"):"";
   say(r.text||notes||(r.ok?"انجام شد.":"انجام نشد."),!r.ok);
 }
