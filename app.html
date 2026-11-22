@@ -1881,9 +1881,10 @@ function render(d){
   if(tm){
     if(!d||!Array.isArray(d.tmux))empty(tm,"در دسترس نیست","i-layers");
     else if(!d.tmux.length)empty(tm,"هیچ جلسهٔ tmux بازی وجود ندارد","i-layers");
-    else d.tmux.forEach(function(n){
+    else d.tmux.forEach(function(o){
+      var n=typeof o==="string"?o:o.n;
       var r=el("div","row");
-      r.appendChild(el("div","mono name ltr",n));
+      r.appendChild(el("div","mono name",typeof o==="string"?n:o.s));
       var a=el("div","acts");
       var b=btn("بستن","tk_"+n,a,"btn-danger-tonal");
       b.innerHTML=svgIcon("i-trash","icon-sm")+'<span>بستن</span>';
