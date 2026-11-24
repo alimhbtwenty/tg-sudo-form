@@ -1884,7 +1884,14 @@ function render(d){
     else d.tmux.forEach(function(o){
       var n=typeof o==="string"?o:o.n;
       var r=el("div","row");
-      r.appendChild(el("div","mono name",typeof o==="string"?n:o.s));
+      var nm=el("div","mono name",typeof o==="string"?n:(o.a?"["+o.a+"] ":"")+o.s);
+      if(o&&typeof o.u==="string"&&/^https:\/\/claude\.ai\//.test(o.u)){
+        var lk=el("a","agylink",o.u);lk.href=o.u;lk.target="_blank";lk.rel="noopener noreferrer";
+        lk.style.cssText="display:block;direction:ltr;text-align:left;word-break:break-all;margin-top:4px";
+        (function(u){lk.addEventListener("click",function(e){var w=window.Telegram&&window.Telegram.WebApp;if(w&&w.openLink){e.preventDefault();try{w.openLink(u)}catch(x){window.open(u,"_blank")}}})})(o.u);
+        nm.appendChild(lk);
+      }
+      r.appendChild(nm);
       var a=el("div","acts");
       var b=btn("بستن","tk_"+n,a,"btn-danger-tonal");
       b.innerHTML=svgIcon("i-trash","icon-sm")+'<span>بستن</span>';
