@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="fa" dir="rtl" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Apps</title>
+<style>
+:root[data-theme="dark"]{color-scheme:dark;--bg:#0f1115;--fg:#f3f4f6;--muted:#94a3b8}
+:root[data-theme="light"]{color-scheme:light;--bg:#f1f5f9;--fg:#0f172a;--muted:#475569}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.7 Tahoma,"Vazirmatn","Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+body{min-height:100vh;padding:max(20px,env(safe-area-inset-top)) 16px max(20px,env(safe-area-inset-bottom))}
+main{max-width:480px;margin:0 auto}
+h1{margin:8px 0 4px;font-size:18px}
+p.sub{margin:0 0 18px;color:var(--muted)}
+.tile{display:block;width:100%;min-height:132px;margin:0 0 14px;padding:20px;border-radius:18px;border:1px solid;text-align:start;font:inherit;cursor:pointer;touch-action:manipulation}
+.tile b{display:block;font-size:22px;line-height:1.4}
+.tile span{display:block;margin-top:6px;font-size:13px}
+.tile.g{background:#0d0c0a;border-color:#e9c466;color:#f4efe4}
+.tile.g b{color:#e9c466}.tile.g span{color:#a9a193}
+.tile.n{background:#162032;border-color:#06b6d4;color:#f3f4f6;border-radius:10px}
+.tile.n b{color:#22d3ee}.tile.n span{color:#94a3b8}
+.tile:active{transform:scale(.99)}
+</style>
+</head>
+<body>
+<main>
+<h1>برنامه‌ها</h1>
+<p class="sub">یکی را انتخاب کنید.</p>
+<button class="tile g" id="t-watch" type="button"><b>GNexus Watch</b><span>سرورها، نشست‌ها، گاوصندوق و ابزارها</span></button>
+<button class="tile n" id="t-nexus" type="button"><b>Nexus Box</b><span>وضعیت تونل، لینک‌ها، WireGuard و مصرف</span></button>
+</main>
+<script>
+(function(){
+/* The hash carries tgWebAppData (signed), the theme and the GNexus snapshot (#d=...): pass it on unchanged. */
+try{var w=window.Telegram&&window.Telegram.WebApp;if(w){if(w.ready)w.ready();if(w.expand)w.expand()}}catch(e){}
+var dark=true;
+try{var w2=window.Telegram&&window.Telegram.WebApp;
+  if(w2&&w2.colorScheme)dark=w2.colorScheme!=="light";
+  else if(window.matchMedia)dark=!window.matchMedia("(prefers-color-scheme: light)").matches}catch(e){}
+document.documentElement.setAttribute("data-theme",dark?"dark":"light");
+/* ?v= (cache buster set by the bot) is passed on too, so a changed page is never served stale */
+function go(p){location.href=p+location.search+location.hash}
+document.getElementById("t-watch").addEventListener("click",function(){go("app.html")});
+document.getElementById("t-nexus").addEventListener("click",function(){go("nexus.html")});
+})();
+</script>
+</body>
+</html>

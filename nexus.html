@@ -61,6 +61,8 @@ nav button.on{color:var(--acc-text);font-weight:700}
 .qr{display:block;margin:6px auto 12px;width:240px;max-width:100%;background:#fff;border-radius:10px;padding:10px}
 .sheet textarea{width:100%;min-height:96px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--fg);padding:8px 12px;font:12.5px/1.5 ui-monospace,Menlo,Consolas,monospace;direction:ltr;text-align:start;resize:vertical}
 header .hb{display:flex;gap:8px;flex:none}
+a.btn{display:inline-flex;align-items:center;text-decoration:none;color:inherit}
+header{flex-wrap:wrap}
 header .btn.sm{white-space:nowrap;padding:0 10px}
 .pillx{display:inline-block;padding:0 9px;border-radius:999px;font-size:11.5px;border:1px solid var(--line);color:var(--muted);flex:none}
 .pillx.c{color:var(--ok);border-color:var(--ok)}.pillx.d{color:var(--warn);border-color:var(--warn)}
@@ -69,7 +71,7 @@ header .btn.sm{white-space:nowrap;padding:0 10px}
 </style>
 </head>
 <body>
-<header><h1>Nexus <span>Box</span></h1><div class="hb"><button class="btn sm" id="swap" type="button">GNexus Watch ⇄</button><button class="btn sm" id="refresh" type="button">تازه‌سازی</button></div></header>
+<header><h1>Nexus <span>Box</span></h1><div class="hb"><a class="btn sm" id="hub" href="hub.html">همه اپ‌ها</a><button class="btn sm" id="swap" type="button">GNexus Watch ⇄</button><button class="btn sm" id="refresh" type="button">تازه‌سازی</button></div></header>
 <main id="main"></main>
 <nav id="nav"></nav>
 <script>
@@ -422,7 +424,8 @@ function go(t){
     b.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="'+t.i+'"/></svg>';
     b.appendChild(h("span",null,t.t));b.onclick=function(){go(t.id)};$("nav").appendChild(b);
   });
-  $("swap").onclick=function(){tgOpen(WATCH_LINK)};
+  $("swap").onclick=function(){location.href="app.html"+location.hash};
+  $("hub").onclick=function(e){e.preventDefault();location.href="hub.html"+location.hash};
   $("refresh").onclick=function(){D[tab]={};load(tab)};
   timer=setInterval(function(){if(signed()&&tab==="status"&&!document.hidden&&!document.querySelector(".ov"))load("status",true)},30000);
   go("status");

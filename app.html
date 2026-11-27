@@ -1031,6 +1031,7 @@ select:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 <style>
 .swap-row{display:flex;align-items:center;justify-content:flex-start;gap:8px;flex-wrap:wrap;margin-top:6px}
 .btn-swap{min-height:44px;padding:0 14px;border-radius:999px;background:var(--card);color:var(--text);border:1px solid var(--line);font:inherit;font-size:13px;font-weight:700;cursor:pointer;touch-action:manipulation}
+a.btn-swap{display:inline-flex;align-items:center;text-decoration:none}
 .sec-fallback{margin-top:8px;padding:12px;border-radius:12px;border:1px solid var(--warn);background:var(--warn-soft);color:var(--text);font-size:13px;line-height:1.7}
 .sec-fallback p{margin:0 0 10px}
 .sec-fallback button{min-height:44px;padding:0 16px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--text);font:inherit;font-weight:700;cursor:pointer}
@@ -1077,7 +1078,7 @@ select:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
       <svg class="icon"><use href="#i-refresh"></use></svg>
     </button>
   </div>
-  <div class="swap-row"><button id="swap-app" type="button" class="btn-swap">Nexus Box ⇄</button></div>
+  <div class="swap-row"><button id="swap-app" type="button" class="btn-swap">Nexus Box ⇄</button><a id="hub-link" href="hub.html" class="btn-swap">همه اپ‌ها</a></div>
   <div id="sec-fallback" class="sec-fallback" hidden><p>این صفحه بدون امضای تلگرام باز شده؛ دکمه‌های اجرایی کار نمی‌کنند. از لینک امن باز کنید.</p><button id="sec-open" type="button">باز کردن امن</button></div>
   <div id="age" class="age" aria-live="polite"></div>
   <div id="res" class="res toast" role="status" aria-live="polite" hidden></div>
@@ -2136,7 +2137,9 @@ function signed(){
   try{if(m)v=decodeURIComponent(m[1]);else v=sessionStorage.getItem("wi")||""}catch(e){}
   return /(^|&)hash=[0-9a-f]{8,}/i.test(v);
 }
-document.getElementById("swap-app").addEventListener("click",function(){tgOpen(NEXUS_LINK)});
+function goPage(p){location.href=p+location.hash}
+document.getElementById("swap-app").addEventListener("click",function(){goPage("nexus.html")});
+document.getElementById("hub-link").addEventListener("click",function(e){e.preventDefault();goPage("hub.html")});
 document.getElementById("sec-open").addEventListener("click",function(){tgOpen(WATCH_LINK)});
 if(!signed())document.getElementById("sec-fallback").hidden=false;
 })();
