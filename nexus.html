@@ -59,17 +59,25 @@ nav button.on{color:var(--acc-text);font-weight:700}
 .sheet input{width:100%;min-height:44px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--fg);padding:0 12px;font:inherit;direction:ltr;text-align:start}
 .sheet .acts{display:flex;gap:10px;margin-top:14px}.sheet .acts .btn{flex:1}
 .qr{display:block;margin:6px auto 12px;width:240px;max-width:100%;background:#fff;border-radius:10px;padding:10px}
+.sheet textarea{width:100%;min-height:96px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--fg);padding:8px 12px;font:12.5px/1.5 ui-monospace,Menlo,Consolas,monospace;direction:ltr;text-align:start;resize:vertical}
+header .hb{display:flex;gap:8px;flex:none}
+header .btn.sm{white-space:nowrap;padding:0 10px}
+.pillx{display:inline-block;padding:0 9px;border-radius:999px;font-size:11.5px;border:1px solid var(--line);color:var(--muted);flex:none}
+.pillx.c{color:var(--ok);border-color:var(--ok)}.pillx.d{color:var(--warn);border-color:var(--warn)}
 .toast{position:fixed;inset-inline:16px;bottom:calc(72px + env(safe-area-inset-bottom));z-index:30;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;text-align:center}
 .toast.ok{border-color:var(--ok)}.toast.bad{border-color:var(--bad)}
 </style>
 </head>
 <body>
-<header><h1>Nexus <span>Box</span></h1><button class="btn sm" id="refresh" type="button">تازه‌سازی</button></header>
+<header><h1>Nexus <span>Box</span></h1><div class="hb"><button class="btn sm" id="swap" type="button">GNexus Watch ⇄</button><button class="btn sm" id="refresh" type="button">تازه‌سازی</button></div></header>
 <main id="main"></main>
 <nav id="nav"></nav>
 <script>
 var API="https://91.220.113.145/wormapp/",PUB="MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEAz8gFcB5c53nQ3Jxep7pX7n3fuR1EWtfSHFtUlBFsKgLLJhGh31/5s0qngPHpChIm0Rx1bPgMbUKbRssX1erN1BC5DaSOzTAId+zZB2L/af7pA2mAqERlreQ3mZbd6wVi3E4ep8zK50350ApLUepLti/PhX/B4ttKXxXDh3kUGHLqZph0G8ZERFnqQFKsV2iUl+lih12i12VrEQrpvjJxofqRCXVno3Zq/Aw1yZbWPnRkKuEs3GX/C3VTsGHVKbfSONheVmrOzuvt6FP7xb0aMouVQ+0yNhayPoahv1AyP6UdrIEzyY2XoBM0yKT65VxqV1gBU/Gf5K+qHMCExPaxv2v0/tkkjtTePae3VPXZE+j7HUvY9uEQ8o5CcwPSHRV6D0Pi+Q9thgunolWkxARz7f5JOeIKWee5UAovppAq19CLXJs7IwTgNk0fvbPMe8yRLhILft49yKo7vFdH/AD/KdlOWJyEvFtD//fwlx0SRGJSAdMqsiJExwDwYmjUOU/bAgMBAAE=";
+/* Direct Links of the two Mini Apps (BotFather -> bot -> Edit Mini App); change the short names here if yours differ */
+var NEXUS_LINK="https://t.me/AlisHermessbot/nexus",WATCH_LINK="https://t.me/AlisHermessbot/watch";
 var TABS=[{id:"status",t:"وضعیت",i:"M3 12h4l3-8 4 16 3-8h4"},{id:"links",t:"لینک‌ها",i:"M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"},
+  {id:"l2tp",t:"L2TP",i:"M4 6h16v8H4zM8 18h8M12 14v4"},
   {id:"wg",t:"WireGuard",i:"M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"},{id:"usage",t:"مصرف",i:"M5 20V10M12 20V4M19 20v-7"}];
 var WG_RX=/^[A-Za-z0-9._-]{1,32}$/;
 var tab="status",D={},timer=null;
@@ -83,6 +91,17 @@ function bytes(n){
   var u=["بایت","کیلوبایت","مگابایت","گیگابایت","ترابایت"],i=0;
   while(n>=1024&&i<u.length-1){n/=1024;i++}
   return fa(i?n.toFixed(n<10?1:0):n)+" "+u[i];
+}
+function when(t){
+  if(typeof t!=="number")return"—";
+  try{return new Date(t*1000).toLocaleString("fa-IR",{dateStyle:"short",timeStyle:"short"})}catch(e){}
+  var d=new Date(t*1000);return fa(d.getHours())+":"+fa(("0"+d.getMinutes()).slice(-2));
+}
+function dur(sec){
+  if(typeof sec!=="number"||sec<0)return"—";
+  if(sec<60)return fa(sec)+" ثانیه";
+  if(sec<3600)return fa(Math.round(sec/60))+" دقیقه";
+  return fa(Math.floor(sec/3600))+" ساعت و "+fa(Math.round(sec%3600/60))+" دقیقه";
 }
 /* ---------- theme (Telegram theme -> direction A tokens) ---------- */
 function theme(){
@@ -111,6 +130,13 @@ function enc(obj){
     })
   });
 }
+/* open a t.me link from inside the Mini App (works with or without telegram-web-app.js) */
+function tgOpen(url){
+  try{var w=window.Telegram&&window.Telegram.WebApp;if(w&&w.openTelegramLink){w.openTelegramLink(url);return}}catch(e){}
+  try{var px=window.TelegramWebviewProxy;if(px&&px.postEvent){px.postEvent("web_app_open_tg_link",JSON.stringify({path_full:url.replace("https://t.me","")}));return}}catch(e){}
+  window.open(url,"_blank");
+}
+function signed(){return /(^|&)hash=[0-9a-f]{8,}/i.test(initd())}
 function initd(){
   try{var w=window.Telegram&&window.Telegram.WebApp;if(w&&w.initData)return w.initData}catch(e){}
   var m=/[#&]tgWebAppData=([^&]*)/.exec(location.hash),v="";
@@ -156,7 +182,8 @@ function dlg(o){
   (o.fields||[]).forEach(function(f){
     var l=h("label",null,f.label);l.setAttribute("for","f-"+f.id);sh.appendChild(l);
     var i=document.createElement("input");i.id="f-"+f.id;i.autocomplete="off";i.setAttribute("autocapitalize","off");
-    if(f.pw){i.type="password";i.inputMode="numeric"}else i.type="text";
+    if(f.area){i=document.createElement("textarea");i.id="f-"+f.id;i.setAttribute("autocapitalize","off");i.spellcheck=false}
+    else if(f.pw){i.type="password";i.inputMode="numeric"}else i.type="text";
     if(f.ph)i.placeholder=f.ph;
     sh.appendChild(i);ins[f.id]=i;
   });
@@ -169,7 +196,7 @@ function dlg(o){
   if(o.ok!==false)acts.appendChild(ok);
   acts.appendChild(cancel);sh.appendChild(acts);
   ov.appendChild(sh);document.body.appendChild(ov);
-  var first=sh.querySelector("input");if(first)first.focus();
+  var first=sh.querySelector("input,textarea");if(first)first.focus();
   return api;
 }
 function busyBox(text){
@@ -197,7 +224,7 @@ function withPin(body,title,msg,done){
   }
 }
 /* ---------- loading a tab ---------- */
-var OPS={status:{op:"summary"},links:{op:"links"},wg:{op:"wg_list"},usage:{op:"usage"}};
+var OPS={status:{op:"summary"},links:{op:"links"},l2tp:{op:"l2tp"},wg:{op:"wg_list"},usage:{op:"usage"}};
 function load(t,quiet){
   var d=D[t]=D[t]||{};
   if(d.loading)return;
@@ -208,12 +235,14 @@ function load(t,quiet){
     if(!r.ok){d.err=r.text||"خطای ناشناخته.";d.data=null}
     else{d.err=null;d.data=r.data||r}
     if(t===tab)draw();
+    if(t==="status"&&d.data)call({op:"l2tp"}).then(function(q){if(q.ok&&D.status&&D.status.data){D.status.data.l2n=(q.now||[]).length;if(tab==="status")draw()}}).catch(function(){});
   }).catch(function(e){d.loading=false;d.err=errText(e);d.data=null;if(t===tab)draw()});
 }
 function draw(){
   var m=$("main"),d=D[tab]||{};
   clear(m);
   Array.prototype.forEach.call($("nav").children,function(b){b.className=b.dataset.t===tab?"on":""});
+  if(!signed()){m.appendChild(stateBox("err","این صفحه از دکمهٔ پایین چت بدون امضای تلگرام باز شده و نمی‌تواند هویت شما را ثابت کند. با دکمهٔ زیر از لینک امن باز کنید.","باز کردن امن",function(){tgOpen(NEXUS_LINK)}));return}
   if(d.err){m.appendChild(stateBox("err",d.err,"تلاش دوباره",function(){load(tab)}));return}
   if(!d.data){m.appendChild(stateBox("loading","در حال دریافت…"));return}
   VIEW[tab](m,d.data);
@@ -237,11 +266,43 @@ var VIEW={
       c2.appendChild(h("p","note","هیچ لینکی فعال نیست. از تب «لینک‌ها» یکی را فعال کنید."));
     }
     m.appendChild(c2);
+    var c3=h("div","card");kv(c3,"کاربران L2TP متصل",s.l2n==null?val(null):h("span",null,fa(s.l2n)));m.appendChild(c3);
+  },
+  l2tp:function(m,d){
+    var hd=h("div","head");hd.appendChild(h("h2",null,"L2TP؛ اتصال‌های زنده"));m.appendChild(hd);
+    var N=d.now||[];
+    if(!N.length)m.appendChild(stateBox("empty","الان کسی به L2TP وصل نیست."));
+    else{
+      var c=h("div","card");
+      N.forEach(function(u){
+        var r=h("div","row"),g=h("div","grow"),n=h("div","name");n.appendChild(ltr(u.user||"—"));g.appendChild(n);
+        var s=h("div","sub");s.appendChild(ltr(u.ip||"—"));
+        if(u.from_ip){s.appendChild(h("span",null,"  ·  از "));s.appendChild(ltr(u.from_ip))}
+        g.appendChild(s);
+        g.appendChild(h("div","sub",(u.since?"از "+when(u.since)+"  ·  ":"")+"دریافت "+bytes(u.rx)+"  ·  ارسال "+bytes(u.tx)));
+        r.appendChild(g);r.appendChild(h("span","pillx c","متصل"));c.appendChild(r);
+      });
+      m.appendChild(c);
+    }
+    var h2=h("div","head");h2.appendChild(h("h2",null,"تاریخچهٔ اتصال و قطع"));m.appendChild(h2);
+    var H=d.history||[];
+    if(!H.length){m.appendChild(stateBox("empty","هنوز اتصالی ثبت نشده. بعد از اولین اتصال یا قطع، اینجا نمایش داده می‌شود."));return}
+    var c2=h("div","card");
+    H.forEach(function(e){
+      var r=h("div","row"),g=h("div","grow"),n=h("div","name");n.appendChild(ltr(e.user||"—"));g.appendChild(n);
+      var s=h("div","sub",when(e.time));
+      if(e.from_ip){s.appendChild(h("span",null,"  ·  از "));s.appendChild(ltr(e.from_ip))}
+      g.appendChild(s);
+      if(e.event==="disconnect"&&(e.duration!=null||e.rx!=null))g.appendChild(h("div","sub","مدت "+dur(e.duration)+"  ·  دریافت "+bytes(e.rx)+"  ·  ارسال "+bytes(e.tx)));
+      r.appendChild(g);r.appendChild(h("span","pillx "+(e.event==="connect"?"c":"d"),e.event==="connect"?"اتصال":"قطع"));c2.appendChild(r);
+    });
+    m.appendChild(c2);
   },
   links:function(m,d){
-    var hd=h("div","head");hd.appendChild(h("h2",null,"لینک‌ها"));m.appendChild(hd);
+    var hd=h("div","head");hd.appendChild(h("h2",null,"لینک‌ها"));
+    var addb=h("button","btn pri sm","لینک جدید");addb.type="button";addb.onclick=newLink;hd.appendChild(addb);m.appendChild(hd);
     var L=d.links||[];
-    if(!L.length){m.appendChild(stateBox("empty","هنوز لینکی ثبت نشده. لینک‌ها را از پنل وب اضافه کنید، سپس تازه‌سازی را بزنید."));return}
+    if(!L.length){m.appendChild(stateBox("empty","هنوز لینکی ثبت نشده. با دکمهٔ «لینک جدید» اولین لینک را اضافه کنید."));return}
     if(d.total>L.length)m.appendChild(h("p","note","برترین "+fa(L.length)+" لینک از "+fa(d.total)+" لینک نمایش داده می‌شود."));
     var c=h("div","card");
     L.forEach(function(l){
@@ -251,9 +312,9 @@ var VIEW={
       s.appendChild(h("span",null,"  ·  امتیاز "+(l.score==null?"—":fa(Math.round(l.score)))));
       if(l.ping!=null)s.appendChild(h("span",null,"  ·  "+fa(Math.round(l.ping))+" میلی‌ثانیه"));
       g.appendChild(s);r.appendChild(g);
-      if(l.active)r.appendChild(h("span","tag act","فعال"));
+      if(l.active)r.appendChild(h("span","tag act","در حال استفاده"));
       else if(!l.enabled)r.appendChild(h("span","tag off","غیرفعال"));
-      else{var b=h("button","btn sm","فعال‌سازی");b.type="button";b.onclick=function(){doSwitch(l)};r.appendChild(b)}
+      else{r.appendChild(h("span","tag on","آماده"));var b=h("button","btn sm","استفاده از این");b.type="button";b.onclick=function(){doSwitch(l)};r.appendChild(b)}
       c.appendChild(r);
     });
     m.appendChild(c);
@@ -309,6 +370,21 @@ function doSwitch(l){
     })();
   });
 }
+var LINK_RX=/^(vless|vmess|trojan|ss|hy2|tuic):\/\/\S+$/i;
+function newLink(){
+  dlg({title:"لینک جدید",msg:"لینک v2ray را اینجا بچسبانید (vless، vmess، trojan، ss، hy2 یا tuic). نام اختیاری است.",
+    fields:[{id:"link",label:"لینک",area:1,ph:"vless://…"},{id:"name",label:"نام (اختیاری)",ph:"de-frankfurt-02"}],ok:"ادامه",onOk:function(v,api){
+      if(!LINK_RX.test(v.link)||v.link.length>4096){api.err("لینک نامعتبر است؛ باید با vless:// ، vmess:// ، trojan:// ، ss:// ، hy2:// یا tuic:// شروع شود و فاصله نداشته باشد.");return}
+      if(v.name.length>60){api.err("نام حداکثر ۶۰ نویسه.");return}
+      api.close();
+      var b={op:"link_add",link:v.link};if(v.name)b.name=v.name;
+      withPin(b,"افزودن لینک","PIN را وارد کنید.",function(r){
+        if(!r.ok){toast(r.text||"لینک اضافه نشد.","bad");return}
+        toast("لینک اضافه شد؛ تا چند دقیقه امتیازش محاسبه می‌شود.","ok");
+        D.links={};D.status={};if(tab==="links")load("links");
+      });
+    }});
+}
 function newClient(){
   dlg({title:"کاربر جدید WireGuard",msg:"یک نام انگلیسی برای دستگاه بنویسید (حرف، عدد، نقطه، خط تیره؛ تا ۳۲ نویسه).",
     fields:[{id:"name",label:"نام",ph:"phone-ali"}],ok:"ادامه",onOk:function(v,api){
@@ -335,7 +411,7 @@ function showQr(name,ip){
 /* ---------- start ---------- */
 function go(t){
   tab=t;draw();
-  var d=D[t]||{};if(!d.data&&!d.loading)load(t);
+  var d=D[t]||{};if(signed()&&!d.data&&!d.loading)load(t);
 }
 (function init(){
   theme();
@@ -346,8 +422,9 @@ function go(t){
     b.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="'+t.i+'"/></svg>';
     b.appendChild(h("span",null,t.t));b.onclick=function(){go(t.id)};$("nav").appendChild(b);
   });
+  $("swap").onclick=function(){tgOpen(WATCH_LINK)};
   $("refresh").onclick=function(){D[tab]={};load(tab)};
-  timer=setInterval(function(){if(tab==="status"&&!document.hidden&&!document.querySelector(".ov"))load("status",true)},30000);
+  timer=setInterval(function(){if(signed()&&tab==="status"&&!document.hidden&&!document.querySelector(".ov"))load("status",true)},30000);
   go("status");
 })();
 </script>
