@@ -62,7 +62,10 @@ nav button.on{color:var(--acc-text);font-weight:700}
 .sheet textarea{width:100%;min-height:96px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--fg);padding:8px 12px;font:12.5px/1.5 ui-monospace,Menlo,Consolas,monospace;direction:ltr;text-align:start;resize:vertical}
 header .hb{display:flex;gap:8px;flex:none}
 a.btn{display:inline-flex;align-items:center;text-decoration:none;color:inherit}
-header{flex-wrap:wrap}
+header{flex-wrap:nowrap}
+header h1{white-space:nowrap}
+header .ic{display:none;font-size:18px}
+@media (max-width:480px){header{padding:10px 12px}header .hb{gap:6px}header .lg{display:none}header .ic{display:inline}}
 header .btn.sm{white-space:nowrap;padding:0 10px}
 .pillx{display:inline-block;padding:0 9px;border-radius:999px;font-size:11.5px;border:1px solid var(--line);color:var(--muted);flex:none}
 .pillx.c{color:var(--ok);border-color:var(--ok)}.pillx.d{color:var(--warn);border-color:var(--warn)}
@@ -71,7 +74,7 @@ header .btn.sm{white-space:nowrap;padding:0 10px}
 </style>
 </head>
 <body>
-<header><h1>Nexus <span>Box</span></h1><div class="hb"><a class="btn sm" id="hub" href="hub.html">همه اپ‌ها</a><button class="btn sm" id="swap" type="button">GNexus Watch ⇄</button><button class="btn sm" id="refresh" type="button">تازه‌سازی</button></div></header>
+<header><h1>Nexus <span>Box</span></h1><div class="hb"><a class="btn sm" id="hub" href="hub.html"><span class="lg">همه </span>اپ‌ها</a><button class="btn sm" id="swap" type="button">GNexus<span class="lg"> Watch</span> ⇄</button><button class="btn sm" id="refresh" type="button" aria-label="تازه‌سازی" title="تازه‌سازی"><span class="lg">تازه‌سازی</span><span class="ic" aria-hidden="true">↻</span></button></div></header>
 <main id="main"></main>
 <nav id="nav"></nav>
 <script>
